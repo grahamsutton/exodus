@@ -1,0 +1,36 @@
+#!/usr/bin/env php
+<?php
+
+require_once __DIR__.'/vendor/autoload.php';
+
+use Exodus\Config\ConfigFile;
+use Exodus\Config\Templates;
+use Exodus\Command\BootstrapCommand;
+use Exodus\Command\MakeMigrationCommand;
+use Exodus\Command\MigrateCommand;
+use Exodus\Helpers\PathBuilder;
+
+use Symfony\Component\Console\Application;
+use Symfony\Component\Yaml\Yaml;
+use Symfony\Component\Console\Output\ConsoleOutput;
+
+$path_builder = new PathBuilder();
+
+$config_file = new ConfigFile($path_builder->build([getcwd(), 'exodus.yml']));
+$templates   = new Templates($path_builder->build(['.', 'templates']));
+
+// Register Commands
+$application = new Application();
+$application->add(new BootstrapCommand($config_file, $templates));
+$application->add(new MakeMigrationCommand($config_file, $templates));
+$application->add(new MigrateCommand($config_file));
+
+try {
+
+    $application->run();
+
+} catch (\Exception $e) {
+
+    $output = new ConsoleOutput();
+    $output->writeln($e->getMessage());
+}

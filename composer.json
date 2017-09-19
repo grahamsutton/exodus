@@ -1,0 +1,19 @@
+{
+    "name": "grahamsutton/exodus",
+    "description": "A migrations framework for raw SQL written in PHP.",
+    "authors": [
+        {
+            "name": "Graham Sutton",
+            "email": "grahamsutton2@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Exodus\\": "src/"
+        }
+    },
+    "require": {
+        "symfony/console": "^3.3",
+        "symfony/yaml": "^3.3"
+    }
+}
