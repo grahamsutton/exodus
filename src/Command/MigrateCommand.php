@@ -92,6 +92,14 @@ class MigrateCommand extends Command
 
         $migrations_to_run = $this->getMigrationsToRun();
 
+        // Kill command if no migrations to run
+        if (empty($migrations_to_run)) {
+
+            $output->writeln('<comment>No migrations to run.</comment>');
+
+            exit;
+        }
+
         try {
 
             $this->db_adapter->begin();
@@ -113,6 +121,9 @@ class MigrateCommand extends Command
                 $migrated_files[] = $migration;
             }
 
+            // Add the files that were migrated to the migrations table.
+            $this->markAsMigrated($migrated_files);
+
             $this->db_adapter->commit();
 
             $output->writeln('<info>Your files have made it to the Promised Land.</info>');
@@ -123,6 +134,10 @@ class MigrateCommand extends Command
         } catch (\Exception $e) {
 
             $this->db_adapter->rollback();
+
+            $output->writeln('<error>An error occurred while running migrations.</error>');
+
+            throw $e;
         }
     }
 
@@ -237,5 +252,22 @@ class MigrateCommand extends Command
         }
 
         return $migration_files;
+    }
+
+    /**
+     * Adds migrated files to the migration table so that they won't be re-run
+     * again.
+     *
+     * @param array $migrated_files
+     *
+     * @return void
+     */
+    protected function markAsMigrated($migrated_files = [])
+    {
+        foreach ($migrated_files as $migrated_file) {
+            $this->db_adapter->execute("
+                INSERT INTO $this->migration_table (file) VALUES ('$migrated_file')
+            ");
+        }
     }
 }
