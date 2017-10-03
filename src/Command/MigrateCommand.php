@@ -7,6 +7,7 @@ use Exodus\Config\ConfigFile;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * The Migrate Command Class
@@ -24,6 +25,21 @@ class MigrateCommand extends Command
     protected $config_file;
 
     /**
+     * The database adapter used to connect to the database
+     * instance.
+     *
+     * @var \Exodus\Database\Adapter
+     */
+    protected $db_adapter;
+
+    /**
+     * The table that holds and stores migrations.
+     *
+     * @var string
+     */
+    protected $migration_table;
+
+    /**
      * Constructor
      *
      * @param \Exodus\Config\ConfigFile $config
@@ -32,7 +48,9 @@ class MigrateCommand extends Command
     {
         parent::__construct();
 
-        $this->config_file = $config_file;
+        $this->config_file     = $config_file;
+        $this->db_adapter      = $config_file->getDbAdapter();
+        $this->migration_table = $config_file->getMigrationTable();
     }
 
     /**
@@ -57,6 +75,167 @@ class MigrateCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        
+        $io = new SymfonyStyle($input, $output);
+
+        $migration_dir   = $this->config_file->getMigrationDir();
+        $migration_table = $this->config_file->getMigrationTable();
+
+        // Create migrations table if not yet created.
+        if (!$this->isMigrationTableCreated()) {
+
+            $this->createMigrationTable();
+
+            $output->writeln(
+                "<info>Created migrations table under name '$migration_table'.</info>"
+            );
+        }
+
+        $migrations_to_run = $this->getMigrationsToRun();
+
+        try {
+
+            $this->db_adapter->begin();
+
+            $migrated_files = [];
+
+            // Run each pending migration
+            foreach ($migrations_to_run as $migration) {
+
+                // Get the full path to the migration
+                $full_path = $migration_dir . DIRECTORY_SEPARATOR . $migration;
+
+                // Read out the SQL contents
+                $contents = file_get_contents($full_path);
+
+                // Attempt to execute the for the current migration
+                $this->db_adapter->execute($contents);
+
+                $migrated_files[] = $migration;
+            }
+
+            $this->db_adapter->commit();
+
+            $output->writeln('<info>Your files have made it to the Promised Land.</info>');
+
+            // Display files that were migrated
+            $io->table(['Files Migrated'], [$migrated_files]);
+
+        } catch (\Exception $e) {
+
+            $this->db_adapter->rollback();
+        }
+    }
+
+    /**
+     * Returns the list of migrations to run.
+     *
+     * We compare migrations from the migrations directory and compare it
+     * against the migrations listed in the migrations table (if they are
+     * in the database, it means they have been run). We then return the
+     * array of files that are in the directory but not in the database.
+     * These are the files that need to be run.
+     *
+     * @return array
+     */
+    protected function getMigrationsToRun()
+    {
+        $migrations_ran    = $this->getMigrationsRan();
+        $migrations_in_dir = $this->getMigrationsInDir();
+
+        return array_diff($migrations_in_dir, $migrations_ran);
+    }
+
+    /**
+     * Creates the migration table.
+     *
+     * @return void
+     */
+    protected function createMigrationTable()
+    {
+        $migration_table = $this->config_file->getMigrationTable();
+
+        $resource = $this->db_adapter->query("
+            CREATE TABLE $this->migration_table (
+                file VARCHAR PRIMARY KEY,
+                ran_at TIMESTAMP DEFAULT NOW()
+            );
+        ");
+    }
+
+    /**
+     * Returns whether the migration table is already created.
+     *
+     * @return bool
+     */
+    protected function isMigrationTableCreated()
+    {
+        // TODO: Move query to a query factory based on db_adapter
+        $resource = $this->db_adapter->query("
+            SELECT relname 
+            FROM pg_class 
+            WHERE relname = '$this->migration_table';
+        ");
+
+        // TODO: Needs to be abstracted from this class
+        $result = pg_fetch_row($resource);
+
+        return $result[0];
+    }
+
+    /**
+     * Return the list of migrations that have already been run.
+     *
+     * Migrations that have already been run will appear in the
+     * migrations table.
+     *
+     * @return array
+     */
+    protected function getMigrationsRan()
+    {
+        // TODO: Move query to a query factory based on db_adapter
+        $resource = $this->db_adapter->query(
+            "SELECT file FROM $this->migration_table"
+        );
+
+        // TODO: Needs to be abstracted from this class
+        $results = pg_fetch_all($resource) ?: [];
+
+        // Flatten the array structure to a single dimension
+        $migrations_ran = array_map(function ($result) {
+            return $result['file'];
+        }, $results);
+
+        return $migrations_ran;
+    }
+
+    /**
+     * Returns the list of migration file names from the migrations directory.
+     *
+     * The scandir function returns other nodes in the directory like ".",
+     * "..", and other sub directories, so in this case we exclude those nodes
+     * from being returned.
+     *
+     * @return array
+     */
+    protected function getMigrationsInDir()
+    {
+        $migration_files = [];
+
+        $migration_dir = $this->config_file->getMigrationDir();
+
+        $dir_contents = scandir($migration_dir);
+
+        // Loop through each node in the migrations directory
+        foreach ($dir_contents as $node) {
+
+            // Verify the node is a file, if not, just skip it
+            $is_file = is_file($migration_dir . DIRECTORY_SEPARATOR . $node);
+
+            if ($is_file) {
+                $migration_files[] = $node;
+            }
+        }
+
+        return $migration_files;
     }
 }

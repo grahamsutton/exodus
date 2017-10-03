@@ -9,6 +9,7 @@ use Exodus\Command\BootstrapCommand;
 use Exodus\Command\MakeMigrationCommand;
 use Exodus\Command\MigrateCommand;
 use Exodus\Helpers\PathBuilder;
+use Exodus\Database\Adapter\Factory as AdapterFactory;
 
 use Symfony\Component\Console\Application;
 use Symfony\Component\Yaml\Yaml;
@@ -16,11 +17,17 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 
 $path_builder = new PathBuilder();
 
-$config_file = new ConfigFile($path_builder->build([getcwd(), 'exodus.yml']));
-$templates   = new Templates($path_builder->build(['.', 'templates']));
+// Instantiate object for exodus.yml
+$config_file = new ConfigFile(
+    $path_builder->build([getcwd(), 'exodus.yml']),
+    new AdapterFactory()
+);
+
+// Instantiate object for the templates/ folder
+$templates = new Templates($path_builder->build(['.', 'templates']));
 
 // Register Commands
-$application = new Application();
+$application = new Application('Exodus Migrations CLI');
 $application->add(new BootstrapCommand($config_file, $templates));
 $application->add(new MakeMigrationCommand($config_file, $templates));
 $application->add(new MigrateCommand($config_file));

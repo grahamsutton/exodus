@@ -13,18 +13,35 @@ use Symfony\Component\Yaml\Yaml;
 class ConfigFile
 {
     /**
-     * The path to the config file
+     * The path to the config file.
+     *
+     * @var string
      */
     protected $path;
+
+    /**
+     * The list of depdendencies for this class.
+     *
+     * @var array
+     */
+    protected $dependencies;
+
+    /**
+     * The contents of the exodus.yml file.
+     *
+     * @var array
+     */
+    protected $contents;
 
     /**
      * Constructor
      *
      * @param string $path
      */
-    public function __construct($path)
+    public function __construct($path, $db_adapter_factory)
     {
-        $this->path = $path;
+        $this->path               = $path;
+        $this->db_adapter_factory = $db_adapter_factory;
     }
 
     /**
@@ -69,12 +86,56 @@ class ConfigFile
     }
 
     /**
+     * Returns the name of the migration table specified to be used for migrations.
+     *
+     * @return string
+     */
+    public function getMigrationTable()
+    {
+        $contents = $this->getContents();
+
+        if (!isset($contents['migration_table'])) {
+            throw new UndefinedConfigParamException(
+                'The param "migration_table" is not defined in your exodus.yml file.'
+            );
+        }
+
+        return trim($contents['migration_table']);
+    }
+
+    /**
+     * Creates and returns a database adapter as specified in the exodus.yml
+     * file.
+     *
+     * @return Exodus\Database\Adapter
+     */
+    public function getDbAdapter()
+    {
+        $contents = $this->getContents();
+
+        if (!isset($contents['db']['adapter'])) {
+            throw new UndefinedConfigParamException(
+                'The param ' . implode(':', ['db', 'adapter']) . ' is not defined ' .
+                'in your exodus.yml file.'
+            );
+        }
+
+        return $this->db_adapter_factory->getDbAdapter($contents['db']);
+    }
+
+    /**
      * Returns the contents of the exodus.yml file.
+     *
+     * Contents are lazy loaded.
      *
      * @return array 
      */
     protected function getContents()
     {
-        return Yaml::parse(file_get_contents($this->getPath()));
+        if (!$this->contents) {
+            $this->contents = Yaml::parse(file_get_contents($this->getPath()));
+        }
+
+        return $this->contents;
     }
 }
