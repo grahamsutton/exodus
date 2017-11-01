@@ -25,11 +25,12 @@ To run a sample of how Exodus works, first, create a database with Postgres. For
 $ createdb example_db
 ```
 
-Now run the bootstrap command to get the `exodus.yml` configuration file:
+The configuration file, `exodus.yml`, will be created if it does not yet exist when you run the `php exodus`:
 
 ```sh
-$ php exodus bootstrap
+$ php exodus
 Created exodus.yml file.
+...
 ```
 
 You should now see the `exodus.yml` file in your project root directory.

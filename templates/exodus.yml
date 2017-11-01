@@ -1,1 +1,9 @@
-migration_dir: 'database/migrations/'
+migration_dir: database/migrations/
+migration_table: migrations
+db:
+  adapter: postgresql
+  host: localhost
+  username:
+  password:
+  port: 5432
+  name: example_db

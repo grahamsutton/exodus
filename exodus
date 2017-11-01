@@ -15,7 +15,11 @@ use Symfony\Component\Console\Application;
 use Symfony\Component\Yaml\Yaml;
 use Symfony\Component\Console\Output\ConsoleOutput;
 
+$output       = new ConsoleOutput();
 $path_builder = new PathBuilder();
+
+// Instantiate object for the templates/ folder
+$templates = new Templates($path_builder->build(['.', 'templates']));
 
 // Instantiate object for exodus.yml
 $config_file = new ConfigFile(
@@ -23,21 +27,21 @@ $config_file = new ConfigFile(
     new AdapterFactory()
 );
 
-// Instantiate object for the templates/ folder
-$templates = new Templates($path_builder->build(['.', 'templates']));
+// Create the config file if it doesn't exist
+if (!$config_file->exists()) {
+    // Copy the config file template into the user's project
+    copy($templates->getConfigFilePath(), $config_file->getPath());
+
+    $output->writeln('<info>Created exodus.yml file.</info>');
+}
 
 // Register Commands
 $application = new Application('Exodus Migrations CLI');
-$application->add(new BootstrapCommand($config_file, $templates));
 $application->add(new MakeMigrationCommand($config_file, $templates));
 $application->add(new MigrateCommand($config_file));
 
 try {
-
     $application->run();
-
 } catch (\Exception $e) {
-
-    $output = new ConsoleOutput();
     $output->writeln($e->getMessage());
 }
