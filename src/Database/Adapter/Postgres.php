@@ -3,7 +3,8 @@
 namespace Exodus\Database\Adapter;
 
 use Exodus\Database\Adapter;
-use Exodus\Exception\NoDatabaseConnection;
+use Exodus\Exception\NoDatabaseConnectionException;
+use Exodus\Exception\PostgresQueryException;
 
 /**
  * The Postgres Database Adapter
@@ -82,7 +83,7 @@ class Postgres extends Adapter
     public function commit()
     {
         if (!$this->conn) {
-            throw new NoDatabaseConnection(
+            throw new NoDatabaseConnectionException(
                 'Cannot commit transaction. No database connection found.'
             );
         }
@@ -100,7 +101,7 @@ class Postgres extends Adapter
     public function rollback()
     {
         if (!$this->conn) {
-            throw new NoDatabaseConnection(
+            throw new NoDatabaseConnectionException(
                 'Cannot commit transaction. No database connection found.'
             );
         }
@@ -121,11 +122,21 @@ class Postgres extends Adapter
     public function execute($query)
     {
         if (!$this->conn) {
-            throw new NoDatabaseConnection(
+            throw new NoDatabaseConnectionException(
                 'No Postgres database connection is active.'
             );
         }
 
-        return pg_query($this->conn, $query);
+        $success = @pg_query($this->conn, $query);
+
+        if (!$success) {
+            throw new PostgresQueryException(
+                pg_last_error()
+            );
+        } else {
+            pg_query("SELECT pg_temp.UP()");
+        }
+
+        return $success;
     }
 }

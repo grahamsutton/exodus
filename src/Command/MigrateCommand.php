@@ -75,7 +75,9 @@ class MigrateCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $io = new SymfonyStyle($input, $output);
+        // $this->db_adapter->connect();
+        // $this->db_adapter->rollback();
+        // return;
 
         $migration_dir   = $this->config_file->getMigrationDir();
         $migration_table = $this->config_file->getMigrationTable();
@@ -116,7 +118,7 @@ class MigrateCommand extends Command
                 $contents = file_get_contents($full_path);
 
                 // Attempt to execute the for the current migration
-                $this->db_adapter->execute($contents);
+                $test = $this->db_adapter->execute($contents);
 
                 $migrated_files[] = $migration;
             }
@@ -124,18 +126,16 @@ class MigrateCommand extends Command
             // Add the files that were migrated to the migrations table.
             $this->markAsMigrated($migrated_files);
 
-            $this->db_adapter->commit();
-
-            $output->writeln('<info>Your files have made it to the Promised Land.</info>');
+            // $this->db_adapter->commit();
 
             // Display files that were migrated
-            $io->table(['Files Migrated'], [$migrated_files]);
+            foreach ($migrated_files as $file) {
+                $output->writeln("<info>Migrated:</info> {$file}");
+            }
 
         } catch (\Exception $e) {
 
             $this->db_adapter->rollback();
-
-            $output->writeln('<error>An error occurred while running migrations.</error>');
 
             throw $e;
         }

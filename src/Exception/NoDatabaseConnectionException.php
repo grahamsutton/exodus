@@ -10,4 +10,4 @@ use Exception;
  * Should be thrown when there is no active database connection
  * formed when trying to perform a query or transaction.
  */
-class NoDatabaseException extends Exception {}
+class NoDatabaseConnectionException extends Exception {}
