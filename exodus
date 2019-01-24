@@ -8,6 +8,7 @@ use Exodus\Config\Templates;
 use Exodus\Command\BootstrapCommand;
 use Exodus\Command\MakeMigrationCommand;
 use Exodus\Command\MigrateCommand;
+use Exodus\Command\RollbackCommand;
 use Exodus\Helpers\PathBuilder;
 use Exodus\Database\Adapter\Factory as AdapterFactory;
 
@@ -37,8 +38,10 @@ if (!$config_file->exists()) {
 
 // Register Commands
 $application = new Application('Exodus Migrations CLI');
+
 $application->add(new MakeMigrationCommand($config_file, $templates));
 $application->add(new MigrateCommand($config_file));
+$application->add(new RollbackCommand($config_file));
 
 try {
     $application->run();

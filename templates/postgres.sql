@@ -1,8 +1,21 @@
-DO
-$$
-BEGIN
+CREATE OR REPLACE FUNCTION exodus_tmp.UP()
+RETURNS void AS
+$BODY$
+  BEGIN
+    
+    --
 
--- Define SQL here
+  END;
+$BODY$
+LANGUAGE 'plpgsql';
 
-END;
-$$
+CREATE OR REPLACE FUNCTION exodus_tmp.DOWN()
+RETURNS void AS
+$BODY$
+  BEGIN
+    
+    --
+
+  END;
+$BODY$
+LANGUAGE 'plpgsql';

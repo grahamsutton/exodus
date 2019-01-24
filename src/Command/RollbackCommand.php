@@ -9,15 +9,15 @@ use Exodus\Database\Strategy\Factory as StrategyFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Console\Input\InputOption;
 
 /**
- * The Migrate Command Class
+ * The Rollback Command Class
  *
- * This class is responsible for running migrations when the 'migrate'
+ * This class is responsible for rolling back migrations when the 'rollback'
  * command is run.
  */
-class MigrateCommand extends Command
+class RollbackCommand extends Command
 {
     /**
      * The config file object (exodus.yml).
@@ -80,8 +80,9 @@ class MigrateCommand extends Command
      */
     protected function configure()
     {
-        $this->setName('migrate');
-        $this->setDescription('Run pending migrations');
+        $this->setName('rollback');
+        $this->setDescription('Rollback migrations');
+        $this->addOption('last', 'l', InputOption::VALUE_REQUIRED, 'Rolls back the last n migrations.', null);
     }
 
     /**
@@ -95,26 +96,19 @@ class MigrateCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        // Get option to rollback the last "n" number of migrations
+        $num_to_rollback = (int) $input->getOption('last');
+
         $this->strategy = StrategyFactory::getStrategy(
             $this->db_adapter,
             $this->migration_table
         );
 
-        // Create migrations table if not yet created.
-        if (!$this->strategy->isMigrationTableCreated()) {
+        $migrations_to_rollback = $this->getMigrationsToRollback($num_to_rollback);
 
-            $this->strategy->createMigrationTable();
-
-            $output->writeln(
-                "<info>Created migrations table under name '$this->migration_table'.</info>"
-            );
-        }
-
-        $migrations_to_run = $this->getMigrationsToRun();
-
-        // Kill command if no migrations to run
-        if (empty($migrations_to_run)) {
-            $output->writeln('<comment>No migrations to run.</comment>');
+        // Stop execution if there is nothing to rollback
+        if (empty($migrations_to_rollback)) {
+            $output->writeln('<comment>No migrations to rollback.</comment>');
             exit;
         }
 
@@ -124,15 +118,18 @@ class MigrateCommand extends Command
 
             $this->strategy->setUp();
 
-            $this->runMigrations($migrations_to_run);
+            $this->rollbackMigrations($migrations_to_rollback);
 
             $this->strategy->tearDown();
 
             $this->db_adapter->commit();
 
-            // Display files that were migrated
-            foreach ($migrations_to_run as $file) {
-                $output->writeln("<info>Migrated:</info> {$file}");
+            // Reverse the order back to normal
+            $migrations_to_rollback = array_reverse($migrations_to_rollback);
+
+            // Display files that were rolled back
+            foreach ($migrations_to_rollback as $file) {
+                $output->writeln("<comment>Rolled back:</comment> {$file}");
             }
 
         } catch (\Exception $e) {
@@ -150,39 +147,55 @@ class MigrateCommand extends Command
      *
      * @return array
      */
-    protected function runMigrations(array $migrations_to_run = [])
+    protected function rollbackMigrations(array $migrations_to_rollback = [])
     {
-        foreach ($migrations_to_run as $file_name) {
+        // Run each pending migration
+        foreach ($migrations_to_rollback as $file_name) {
 
             // Read out the SQL contents
             $contents = $this->file_handler->fileGetContents(
                 $this->migration_dir . DIRECTORY_SEPARATOR . $file_name
             );
 
-            $this->strategy->runMigration($contents);
+            $this->strategy->runRollback($contents);
         }
 
-        // Inserts migrations into the migration table
-        $this->strategy->addMigrations($migrations_to_run);
+        $this->strategy->removeMigrations($migrations_to_rollback);
     }
 
     /**
-     * Returns the list of migrations to run.
+     * Returns the list of migrations to rollback.
      *
-     * We compare migrations from the migrations directory and compare it
-     * against the migrations listed in the migrations table (if they are
-     * in the database, it means they have been run). We then return the
-     * array of files that are in the directory but not in the database.
-     * These are the files that need to be run.
+     * We fetch a list of the migrations that are already in the migrations
+     * table and begin reversing the order of the migrations so that they can
+     * be rolled back in backwards order from latest to oldest.
+     *
+     * The $num_to_rollback parameter represents the number of migrations to
+     * rollback. For example, if "3" was provided, we would rollback the last
+     * three migrations. If null is provided, we rollback all migrations.
+     *
+     * If the provided number to rollback is greater than the total migrations
+     * that have been run, then we will rollback all of them
+     *
+     * @param int $num_to_rollback
      *
      * @return array
      */
-    protected function getMigrationsToRun()
+    protected function getMigrationsToRollback(int $num_to_rollback = null)
     {
-        $migrations_ran    = $this->strategy->getMigrationsRan();
-        $migrations_in_dir = $this->getMigrationsInDir();
+        $migrations_ran = $this->strategy->getMigrationsRan();
 
-        return array_diff($migrations_in_dir, $migrations_ran);
+        if (!is_null($num_to_rollback)) {
+            $total_migrations_ran = count($migrations_ran);
+
+            $num_to_rollback = $num_to_rollback > $total_migrations_ran
+                ? $total_migrations_ran 
+                : $num_to_rollback;
+
+            $migrations_ran = array_slice($migrations_ran, 0 - $num_to_rollback);
+        }
+
+        return array_reverse($migrations_ran);
     }
 
     /**

@@ -102,7 +102,7 @@ class Postgres extends Adapter
     {
         if (!$this->conn) {
             throw new NoDatabaseConnectionException(
-                'Cannot commit transaction. No database connection found.'
+                'Cannot rollback transaction. No database connection found.'
             );
         }
 
@@ -133,8 +133,6 @@ class Postgres extends Adapter
             throw new PostgresQueryException(
                 pg_last_error()
             );
-        } else {
-            pg_query("SELECT pg_temp.UP()");
         }
 
         return $success;
