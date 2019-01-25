@@ -11,7 +11,7 @@ If you want to test it out, you need to clone the project to your local machine 
 $ composer install
 ```
 
-## How to Use
+## Configuration
 
 To see the help menu, just type:
 
@@ -49,6 +49,8 @@ db:
   name: example_db                      # or whatever the name of your database is
 ```
 
+## Creating a Migration
+
 Now that you have your configuration file ready to go, it's time to make a migration:
 
 ```sh
@@ -70,7 +72,7 @@ Open the `1506960399_create_users_table.sql` file and you should see two Postgre
 * `exodus_tmp.UP()`: Executes when you run `php exodus migrate`
 * `exodus_tmp.DOWN()`: Executes when you run `php exodus rollback`
 
-Essentially, `UP` are the positive, new changes you want to make against your database, whereas `DOWN` reverses those new changes. So, `DOWN` is the reverse operation of `UP`. Exodus creates a temporary schema called `exodus_tmp` to execute the `UP` and `DOWN` functions, and is dropped after the migration have finished running.
+Essentially, `UP` are the positive, new changes you want to make against your database, whereas `DOWN` reverses those new changes. So, `DOWN` is the reverse operation of `UP`. Exodus creates a temporary schema called `exodus_tmp` to execute the `UP` and `DOWN` functions, and is dropped after the migrations have finished running.
 
 Here is an example of creating a new table and adding some records in the `UP` function, and you can see how `DOWN` reverses this change by dropping the table.
 
@@ -104,32 +106,23 @@ $BODY$
 LANGUAGE 'plpgsql';
 ```
 
-Now, save the file and in your terminal, run the migrations and you should see the corresponding output:
+Now, save the file and in your terminal, run your migrations:
 
 ```sh
 $ php exodus migrate
-Your files have made it to the Promised Land.
- -------------------------------------- 
-  Files Migrated                        
- -------------------------------------- 
-  1506960399_create_accounts_table.sql  
- --------------------------------------
+Migrated: 1506960399_create_users_table.sql
 ```
-
-If you see this message and no warnings or errors, then congrats, your migrations have successfully run.
 
 You should then be able to see in your database:
 
 ```sh
 $ psql example_db
-psql (9.5.8)
-Type "help" for help.
 
 exodus_dev_db=> SELECT * FROM users;
- id |   name 
-----+----------
- 1  | Graham
- 2  | Jonathan
+   name   |   age
+----------+---------
+ Mike     |      28
+ Steve    |      32
 (2 rows)
 
 exodus_dev_db=> SELECT * FROM migrations;
@@ -149,6 +142,34 @@ No migrations to run.
 ```
 
 Since the migrations have been run and no new migrations are pending, the app has no migrations to run.
+
+## Rolling Back Migrations
+
+If you wish to rollback ***all*** migrations, simply run:
+
+```sh
+$ php exodus rollback
+Rolled back: 1506960399_create_users_table.sql
+```
+
+This will iterate through all migration files that have already been executed and will run the `DOWN` function from each one. Migrations that have *not* been migrated yet will be ignored. Again, this will rollback ***all*** migrations, not just the last one.
+
+To rollback the last *n* migrations, you can specify the `--last=n` (shortcut `-l`) option.
+
+For example:
+
+```sh
+$ php exodus rollback --last=2
+Rolled back: 1548361994_create_locations_table.sql
+Rolled back: 1548363684_create_get_users_proc.sql
+```
+
+## In The Works
+
+Future updates that are coming soon include:
+
+* Batching migrations per execution.
+* Rolling back migrations per batch as the default operation.
 
 ## Contributing
 
