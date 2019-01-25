@@ -25,7 +25,7 @@ To run a sample of how Exodus works, first, create a database with Postgres. For
 $ createdb example_db
 ```
 
-The configuration file, `exodus.yml`, will be created if it does not yet exist when you run the `php exodus`:
+The configuration file, `exodus.yml`, will be created if it does not yet exist when you run the `php exodus` or any Exodus command:
 
 ```sh
 $ php exodus
@@ -41,12 +41,12 @@ Edit your `exodus.yml` file with your credentials:
 migration_dir: database/migrations/     # location you want to have your migrations folder
 migration_table: migrations             # the database table that will hold your run migrations
 db:
-  adapter: postgresql   # must be postgresql, do not change
-  host: localhost       # or whatever host you want
-  username: graham      # replace with your username to the db
-  password:             # replace with your password to the db
-  port: 5432            # or whatever port you have configured
-  name: example_db      # or whatever the name of your database is
+  adapter: postgresql                   # must be postgresql, do not change
+  host: localhost                       # or whatever host you want
+  username: graham                      # replace with your username to the db
+  password:                             # replace with your password to the db
+  port: 5432                            # or whatever port you have configured
+  name: example_db                      # or whatever the name of your database is
 ```
 
 Now that you have your configuration file ready to go, it's time to make a migration:
@@ -65,23 +65,43 @@ database/migrations/1506960399_create_users_table.sql
 
 Notice that the *time in milliseconds* is prepended to the migration file name. That is used to help sort the order the migration files should be run, so that in case you create another migration file and don't yet run it, it will still be run after the first one.
 
-Open the `1506960399_create_users_table.sql` file and add a simple command to execute like creating a table:
+Open the `1506960399_create_users_table.sql` file and you should see two Postgres functions:
+
+* `exodus_tmp.UP()`: Executes when you run `php exodus migrate`
+* `exodus_tmp.DOWN()`: Executes when you run `php exodus rollback`
+
+Essentially, `UP` are the positive, new changes you want to make against your database, whereas `DOWN` reverses those new changes. So, `DOWN` is the reverse operation of `UP`. Exodus creates a temporary schema called `exodus_tmp` to execute the `UP` and `DOWN` functions, and is dropped after the migration have finished running.
+
+Here is an example of creating a new table and adding some records in the `UP` function, and you can see how `DOWN` reverses this change by dropping the table.
 
 ```sql
-DO
-$$
-BEGIN
+CREATE OR REPLACE FUNCTION exodus_tmp.UP()
+RETURNS void AS
+$BODY$
+  BEGIN
 
-CREATE TABLE users (
-    id INT PRIMARY KEY NOT NULL,
-    name VARCHAR NOT NULL
-);
+    CREATE TABLE users (
+      name VARCHAR,
+      age INT
+    );
 
-INSERT INTO users (id, name) VALUES (1, 'Graham');
-INSERT INTO users (id, name) VALUES (2, 'Jonathan');
+    INSERT INTO users (name, age) VALUES ('Mike', 28);
+    INSERT INTO users (name, age) VALUES ('Steve', 32);
 
-END;
-$$
+  END;
+$BODY$
+LANGUAGE 'plpgsql';
+
+CREATE OR REPLACE FUNCTION exodus_tmp.DOWN()
+RETURNS void AS
+$BODY$
+  BEGIN
+
+    DROP TABLE users;
+
+  END;
+$BODY$
+LANGUAGE 'plpgsql';
 ```
 
 Now, save the file and in your terminal, run the migrations and you should see the corresponding output:
