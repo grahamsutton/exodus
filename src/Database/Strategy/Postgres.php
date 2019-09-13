@@ -36,7 +36,7 @@ class Postgres implements Strategy
      */
     public function __construct(PostgresAdapter $db_adapter, $migration_table)
     {
-        $this->db_adapter       = $db_adapter;
+        $this->db_adapter      = $db_adapter;
         $this->migration_table = $migration_table;
     }
 
@@ -174,13 +174,15 @@ class Postgres implements Strategy
      */
     public function setUp(): void
     {
+        $this->db_adapter->begin();
+
         $this->db_adapter->execute("
             CREATE SCHEMA exodus_tmp;
         ");
     }
 
     /**
-     * Destroys the temporary schema.
+     * Destroys the temporary schema and commits all transactions.
      *
      * @return void
      */
@@ -189,5 +191,17 @@ class Postgres implements Strategy
         $this->db_adapter->execute("
             DROP SCHEMA exodus_tmp CASCADE;
         ");
+
+        $this->db_adapter->commit();
+    }
+
+    /**
+     * Rollback any operations or transactions performed in case of failure.
+     *
+     * @return void
+     */
+    public function rollback(): void
+    {
+        $this->db_adapter->rollback();
     }
 }

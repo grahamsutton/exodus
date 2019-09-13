@@ -41,12 +41,12 @@ class MakeMigrationCommand extends Command
      * @param \Exodus\Config\ConfigFile $config
      * @param \Exodus\Config\Templates  $templates
      */
-    public function __construct(ConfigFile $config_file, Templates $templates)
+    public function __construct(array $dependencies = [])
     {
         parent::__construct();
 
-        $this->config_file = $config_file;
-        $this->templates   = $templates;
+        $this->config_file = $dependencies['config_file'];
+        $this->templates   = $dependencies['templates'];
     }
 
     /**
@@ -72,13 +72,6 @@ class MakeMigrationCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        // Validate the configuration file exists first
-        if (!$this->config_file->exists()) {
-            throw new ConfigFileNotFoundException(
-                'No exodus.yml configuration file found.'
-            );
-        }
-
         $file_path = $this->buildFilePath($input->getArgument('name'));
 
         // Create the migration directory if does not exist yet

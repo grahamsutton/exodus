@@ -1,47 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-require_once __DIR__.'/vendor/autoload.php';
-
-use Exodus\Config\ConfigFile;
-use Exodus\Config\Templates;
-use Exodus\Command\BootstrapCommand;
-use Exodus\Command\MakeMigrationCommand;
-use Exodus\Command\MigrateCommand;
-use Exodus\Command\RollbackCommand;
-use Exodus\Helpers\PathBuilder;
-use Exodus\Database\Adapter\Factory as AdapterFactory;
-
-use Symfony\Component\Console\Application;
-use Symfony\Component\Yaml\Yaml;
-use Symfony\Component\Console\Output\ConsoleOutput;
-
-$output       = new ConsoleOutput();
-$path_builder = new PathBuilder();
-
-// Instantiate object for the templates/ folder
-$templates = new Templates($path_builder->build(['.', 'templates']));
-
-// Instantiate object for exodus.yml
-$config_file = new ConfigFile(
-    $path_builder->build([getcwd(), 'exodus.yml']),
-    new AdapterFactory()
-);
-
-// Create the config file if it doesn't exist
-if (!$config_file->exists()) {
-    // Copy the config file template into the user's project
-    copy($templates->getConfigFilePath(), $config_file->getPath());
-
-    $output->writeln('<info>Created exodus.yml file.</info>');
-}
-
-// Register Commands
-$application = new Application('Exodus Migrations CLI');
-
-$application->add(new MakeMigrationCommand($config_file, $templates));
-$application->add(new MigrateCommand($config_file));
-$application->add(new RollbackCommand($config_file));
+require_once __DIR__ . '/bootstrap.php';
 
 try {
     $application->run();

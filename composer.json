@@ -12,8 +12,17 @@
             "Exodus\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "ExodusTests\\": "tests/"
+        }
+    },
     "require": {
         "symfony/console": "^3.3",
         "symfony/yaml": "^3.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^7.5",
+        "mikey179/vfsStream": "^1.6"
     }
 }

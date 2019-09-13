@@ -47,4 +47,29 @@ class Handler
     {
         return is_file($file_path);
     }
+
+    /**
+     * Copies a file from one location to another.
+     *
+     * @param string $source_path
+     * @param string $target_path
+     *
+     * @return mixed
+     */
+    public function copy(string $source_path, string $target_path)
+    {
+        return copy($source_path, $target_path);
+    }
+
+    /**
+     * Determines if a file is already created or not.
+     *
+     * @param string $path
+     *
+     * @return bool
+     */
+    public function fileExists(string $path): bool
+    {
+        return file_exists($path);
+    }
 }

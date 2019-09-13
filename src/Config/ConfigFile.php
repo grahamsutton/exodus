@@ -2,7 +2,7 @@
 
 namespace Exodus\Config;
 
-use Symfony\Component\Yaml\Yaml;
+use Exodus\Exception\UndefinedConfigParamException;
 
 /**
  * The Configuration File Class (exodus.yml)
@@ -13,20 +13,6 @@ use Symfony\Component\Yaml\Yaml;
 class ConfigFile
 {
     /**
-     * The path to the config file.
-     *
-     * @var string
-     */
-    protected $path;
-
-    /**
-     * The list of depdendencies for this class.
-     *
-     * @var array
-     */
-    protected $dependencies;
-
-    /**
      * The contents of the exodus.yml file.
      *
      * @var array
@@ -34,35 +20,22 @@ class ConfigFile
     protected $contents;
 
     /**
+     * The database adapter factory. Used for retrieving the database
+     * adapter specified by the user.
+     *
+     * @var \Exodus\Database\Adapter\Factory
+     */
+    protected $db_adapter_factory;
+
+    /**
      * Constructor
      *
-     * @param string $path
+     * @param string $contents
      */
-    public function __construct($path, $db_adapter_factory)
+    public function __construct(array $dependencies = [])
     {
-        $this->path               = $path;
-        $this->db_adapter_factory = $db_adapter_factory;
-    }
-
-    /**
-     * Returns the path to the exodus.yml file.
-     *
-     * @return string
-     */
-    public function getPath()
-    {
-        return $this->path;
-    }
-
-    /**
-     * Returns if this config file (exodus.yml) has been created
-     * yet or not.
-     *
-     * @return bool
-     */
-    public function exists()
-    {
-        return file_exists($this->getPath());
+        $this->contents           = $dependencies['contents'];
+        $this->db_adapter_factory = $dependencies['db_adapter_factory'];
     }
 
     /**
@@ -74,15 +47,13 @@ class ConfigFile
      */
     public function getMigrationDir()
     {
-        $contents = $this->getContents();
-
-        if (!isset($contents['migration_dir'])) {
+        if (!isset($this->contents['migration_dir'])) {
             throw new UndefinedConfigParamException(
                 'The param "migration_dir" is not defined in your exodus.yml file.'
             );
         }
 
-        return rtrim($contents['migration_dir'], DIRECTORY_SEPARATOR);
+        return rtrim($this->contents['migration_dir'], DIRECTORY_SEPARATOR);
     }
 
     /**
@@ -92,15 +63,13 @@ class ConfigFile
      */
     public function getMigrationTable()
     {
-        $contents = $this->getContents();
-
-        if (!isset($contents['migration_table'])) {
+        if (!isset($this->contents['migration_table'])) {
             throw new UndefinedConfigParamException(
                 'The param "migration_table" is not defined in your exodus.yml file.'
             );
         }
 
-        return trim($contents['migration_table']);
+        return trim($this->contents['migration_table']);
     }
 
     /**
@@ -111,31 +80,12 @@ class ConfigFile
      */
     public function getDbAdapter()
     {
-        $contents = $this->getContents();
-
-        if (!isset($contents['db']['adapter'])) {
+        if (empty($this->contents['db']['adapter'])) {
             throw new UndefinedConfigParamException(
-                'The param ' . implode(':', ['db', 'adapter']) . ' is not defined ' .
-                'in your exodus.yml file.'
+                'The param db:adapter is not defined in your exodus.yml file.'
             );
         }
 
-        return $this->db_adapter_factory->getDbAdapter($contents['db']);
-    }
-
-    /**
-     * Returns the contents of the exodus.yml file.
-     *
-     * Contents are lazy loaded.
-     *
-     * @return array 
-     */
-    protected function getContents()
-    {
-        if (!$this->contents) {
-            $this->contents = Yaml::parse(file_get_contents($this->getPath()));
-        }
-
-        return $this->contents;
+        return $this->db_adapter_factory->getDbAdapter($this->contents['db']);
     }
 }

@@ -84,9 +84,9 @@ abstract class Adapter
      *
      * @param string $host
      */
-    public function setHost($host)
+    public function setHost(string $host): void
     {
-        if (!isset($host)) {
+        if (empty($host)) {
             throw new UndefinedConfigParamException(
                 'No host set for ' . implode(':', ['db', 'host']) . ' ' .
                 'in exodus.yml'
@@ -102,7 +102,7 @@ abstract class Adapter
      *
      * @return string
      */
-    public function getHost()
+    public function getHost(): string
     {
         return $this->host;
     }
@@ -112,7 +112,7 @@ abstract class Adapter
      *
      * @param string $username
      */
-    public function setUsername($username)
+    public function setUsername(string $username): void
     {
         $this->username = $username;
     }
@@ -122,17 +122,17 @@ abstract class Adapter
      *
      * @return string
      */
-    public function getUsername()
+    public function getUsername(): string
     {
-        $this->username = $username;
+        return $this->username;
     }
 
     /**
      * Sets the password used to connect to the database instance.
      *
-     * @param string $password
+     * @param string|null $password
      */
-    public function setPassword($password)
+    public function setPassword($password): void
     {
         $this->password = $password;
     }
@@ -150,26 +150,19 @@ abstract class Adapter
     /**
      * Sets the port number used for connecting to the database instance.
      *
-     * @param string $port
+     * @param int $port
      */
-    public function setPort($port)
+    public function setPort(int $port): void
     {
-        if (!isset($port)) {
-            throw new UndefinedConfigParamException(
-                'No port set for ' . implode(':', ['db', 'port']) . ' ' .
-                'in exodus.yml'
-            );
-        }
-
         $this->port = $port;
     }
 
     /**
      * Returns the port number used for connecting to the database instance.
      *
-     * @return string
+     * @return int
      */
-    public function getPort()
+    public function getPort(): int
     {
         return $this->port;
     }
@@ -179,7 +172,7 @@ abstract class Adapter
      *
      * @param string $name
      */
-    public function setDatabase($name)
+    public function setDatabase(string $name): void
     {
         $this->database = $name;
     }
@@ -189,7 +182,7 @@ abstract class Adapter
      *
      * @return string
      */
-    public function getDatabase()
+    public function getDatabase(): string
     {
         return $this->database;
     }

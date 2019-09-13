@@ -2,8 +2,6 @@
 
 namespace Exodus\Config;
 
-use Exodus\Helpers\PathBuilder;
-
 /**
  * The Templates Directory
  *
@@ -29,9 +27,7 @@ class Templates
      */
     public function getConfigFilePath()
     {
-        $path_builder = new PathBuilder();
-
-        return $path_builder->build([$this->path, 'exodus.yml']);
+        return $this->path . DIRECTORY_SEPARATOR . 'exodus.yml';
     }
 
     /**
@@ -41,8 +37,6 @@ class Templates
      */
     public function getSQLTemplatePath()
     {
-        $path_builder = new PathBuilder();
-
-        return $path_builder->build([$this->path, 'postgres.sql']);
+        return $this->path . DIRECTORY_SEPARATOR . 'postgres.sql';
     }
 }
