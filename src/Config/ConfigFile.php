@@ -82,7 +82,15 @@ class ConfigFile
     {
         if (empty($this->contents['db']['adapter'])) {
             throw new UndefinedConfigParamException(
-                'The param db:adapter is not defined in your exodus.yml file.'
+                'The param db:adapter is not defined. Make sure you have defined your database ' .
+                'credentials in exodus.yml!'
+            );
+        }
+
+        if (empty($this->contents['db']['username'])) {
+            throw new UndefinedConfigParamException(
+                'The param db:username is not defined. Make sure you have defined your database ' .
+                'credentials in exodus.yml!'
             );
         }
 

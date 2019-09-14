@@ -75,15 +75,15 @@ class Engine
     /**
      * Runs the list of provided migrations.
      *
-     * @param array $migrations_to_run
+     * @param array $migrations
      *
      * @return void
      */
-    public function runMigrations(array $migrations_to_run = []): void
+    public function runMigrations(array $migrations = []): void
     {
         $this->strategy->setUp();
 
-        foreach ($migrations_to_run as $file_name) {
+        foreach ($migrations as $file_name) {
 
             // Read out the SQL contents
             $contents = $this->file_handler->fileGetContents(
@@ -94,7 +94,7 @@ class Engine
         }
 
         // Inserts migrations into the migration table
-        $this->strategy->addMigrations($migrations_to_run);
+        $this->strategy->addMigrations($migrations);
 
         $this->strategy->tearDown();
     }
@@ -102,16 +102,16 @@ class Engine
     /**
      * Rolls back the list of provided migrations.
      *
-     * @param array $migrations_to_rollback
+     * @param array $migrations
      *
      * @return void
      */
-    public function rollbackMigrations(array $migrations_to_rollback = []): void
+    public function rollbackMigrations(array $migrations = []): void
     {
         $this->strategy->setUp();
 
         // Roll back each migration
-        foreach ($migrations_to_rollback as $file_name) {
+        foreach ($migrations as $file_name) {
 
             // Read out the SQL contents
             $contents = $this->file_handler->fileGetContents(
@@ -121,7 +121,7 @@ class Engine
             $this->strategy->runRollback($contents);
         }
 
-        $this->strategy->removeMigrations($migrations_to_rollback);
+        $this->strategy->removeMigrations($migrations);
 
         $this->strategy->tearDown();
     }
@@ -195,7 +195,9 @@ class Engine
 
         $migration_dir = $this->config_file->getMigrationDir();
 
-        $dir_contents = $this->file_handler->scanDir($migration_dir);
+        $dir_contents = $this->file_handler->fileExists($migration_dir)
+            ? $this->file_handler->scanDir($migration_dir)
+            : [];
 
         // Loop through each node in the migrations directory
         foreach ($dir_contents as $node) {

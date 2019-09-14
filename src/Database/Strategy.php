@@ -56,11 +56,6 @@ interface Strategy
     public function removeMigrations(array $migrated_files = []): void;
 
     /**
-     * Retrieves the current batch number from the database 
-     */
-    // public function getBatchNumber(): int;
-
-    /**
      * Defines how a single migration is ran and what should happen when running
      * a single migration.
      *

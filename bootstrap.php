@@ -9,34 +9,48 @@ $output       = new \Symfony\Component\Console\Output\ConsoleOutput();
 $file_handler = new \Exodus\File\Handler();
 $templates    = new \Exodus\Config\Templates($templates_file_path);
 
-// Create the config file if it doesn't exist
-if (!$file_handler->fileExists($config_file_path)) {
+try {
 
-    // Copy the config file template into the user's project
-    $file_handler->copy(
-        $templates->getConfigFilePath(), 
-        $config_file_path
-    );
+    // Create the config file if it doesn't exist
+    if (!$file_handler->fileExists($config_file_path)) {
 
-    $output->writeln('<info>Created exodus.yml file.</info>');
+        // Copy the config file template into the user's project
+        $file_handler->copy(
+            $templates->getConfigFilePath(), 
+            $config_file_path
+        );
+
+        $output->writeln('<info>Created exodus.yml file.</info>');
+    }
+
+    // Instantiate object for exodus.yml
+    $config_file = new \Exodus\Config\ConfigFile([
+        'contents' => \Symfony\Component\Yaml\Yaml::parse(
+            $file_handler->fileGetContents($config_file_path)
+        ),
+        'db_adapter_factory' => new \Exodus\Database\Adapter\Factory()
+    ]);
+
+    // The engine is responsible for abstracting away specific database implementation details
+    // and controls the flow of how migrations are created and executed.
+    $engine = new \Exodus\Engine([
+        'strategy' => \Exodus\Database\Strategy\Factory::getStrategy(
+            $config_file->getDbAdapter(),
+            $config_file->getMigrationTable()
+        ),
+        'config_file'  => $config_file,
+        'file_handler' => $file_handler
+    ]);
+
+} catch (\Exception $e) {
+
+    // Pretty print console error
+    $output->writeln('<error>' . $e->getMessage() . '</error>');
+
+    // Terminate bootstrapping
+    exit;
 }
 
-// Instantiate object for exodus.yml
-$config_file = new \Exodus\Config\ConfigFile([
-    'contents' => \Symfony\Component\Yaml\Yaml::parse(
-        $file_handler->fileGetContents($config_file_path)
-    ),
-    'db_adapter_factory' => new \Exodus\Database\Adapter\Factory()
-]);
-
-$engine = new \Exodus\Engine([
-    'strategy' => \Exodus\Database\Strategy\Factory::getStrategy(
-        $config_file->getDbAdapter(),
-        $config_file->getMigrationTable()
-    ),
-    'config_file'  => $config_file,
-    'file_handler' => $file_handler
-]);
 
 // Register Commands
 $application = new \Symfony\Component\Console\Application('Exodus Migrations CLI');

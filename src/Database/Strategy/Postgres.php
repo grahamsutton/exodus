@@ -82,12 +82,10 @@ class Postgres implements Strategy
      */
     public function getMigrationsRan(): array
     {
-        // TODO: Move query to a query factory based on db_adapter
         $resource = $this->db_adapter->query(
             "SELECT file FROM $this->migration_table ORDER BY ran_at ASC"
         );
 
-        // TODO: Needs to be abstracted from this class
         $results = pg_fetch_all($resource) ?: [];
 
         // Flatten the array structure to a single dimension
