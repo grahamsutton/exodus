@@ -199,6 +199,8 @@ class Engine
             ? $this->file_handler->scanDir($migration_dir)
             : [];
 
+        // $dir_contents = $this->file_handler->scanDir($migration_dir);
+
         // Loop through each node in the migrations directory
         foreach ($dir_contents as $node) {
 

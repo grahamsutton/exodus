@@ -103,7 +103,8 @@ class ConfigFileTest extends TestCase
     {
         $contents = [
             'db' => [
-                'adapter' => 'postgresql'
+                'adapter'  => 'postgresql',
+                'username' => 'exodus'
             ]
         ];
 
@@ -134,7 +135,8 @@ class ConfigFileTest extends TestCase
     {
         $contents = [
             'db' => [
-                'adapter' => ''
+                'adapter'  => '',
+                'username' => 'exodus'
             ]
         ];
 

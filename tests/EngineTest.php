@@ -100,6 +100,9 @@ class EngineTest extends TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
+        $file_handler->method('fileExists')
+            ->will($this->returnValue(true));
+
         $file_handler->method('scanDir')
             ->will($this->returnValue($migration_dir_nodes));
 
@@ -172,6 +175,9 @@ class EngineTest extends TestCase
 
         $file_handler->method('scanDir')
             ->will($this->returnValue($migration_dir_nodes));
+
+        $file_handler->method('fileExists')
+            ->will($this->returnValue(true));
 
         $file_handler->method('isFile')
             ->will($this->returnValueMap([
