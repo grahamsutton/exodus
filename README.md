@@ -130,8 +130,6 @@ exodus_dev_db=> SELECT * FROM migrations;
 --------------------------------------+----------------------------
  1506960399_create_accounts_table.sql | 2017-10-02 21:10:33.638886
 (1 row)
-
-exodus_dev_db=> \q
 ```
 
 Now that the migration file has been run and is recorded in the database, you can try running the migrate command again:
@@ -145,31 +143,20 @@ Since the migrations have been run and no new migrations are pending, the app ha
 
 ## Rolling Back Migrations
 
-If you wish to rollback ***all*** migrations, simply run:
+If you wish to rollback the last batch of executed migrations, simply run:
 
 ```sh
 $ php exodus rollback
 Rolled back: 1506960399_create_users_table.sql
 ```
 
-This will iterate through all migration files that have already been executed and will run the `DOWN` function from each one. Migrations that have *not* been migrated yet will be ignored. Again, this will rollback ***all*** migrations, not just the last one.
-
-To rollback the last *n* migrations, you can specify the `--last=n` (shortcut `-l`) option.
-
-For example:
-
-```sh
-$ php exodus rollback --last=2
-Rolled back: 1548361994_create_locations_table.sql
-Rolled back: 1548363684_create_get_users_proc.sql
-```
+This will iterate through the last batch of migration files that were executed and will run the `DOWN` function on each one. Migrations that have *not* been migrated yet will be ignored. If you would like to rollback the execution before that (and so on), just keep running this command over and over again as desired.
 
 ## In The Works
 
 Future updates that are coming soon include:
 
-* Batching migrations per execution.
-* Rolling back migrations per batch as the default operation.
+* Create or replace procedures by referencing them from their own files (instead of having to write the entire procedure inside a migration file).
 
 ## Contributing
 
