@@ -417,47 +417,6 @@ class EngineTest extends TestCase
     /**
      * @group
      */
-    public function testGetMigrationsToRollbackReturnsOnlyNMigrationsToRollbackWhenLastOptionIsProvided()
-    {
-        $migrations_ran = [
-            '0000000000_create_test_table1.sql',
-            '0000000001_create_test_table2.sql',
-            '0000000002_create_test_table3.sql',
-            '0000000003_create_test_table4.sql',
-        ];
-
-        $config_file = $this->getMockBuilder(ConfigFile::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $file_handler = $this->getMockBuilder(FileHandler::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $strategy = $this->getMockBuilder(PostgresStrategy::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $strategy->method('getMigrationsRan')
-            ->will($this->returnValue($migrations_ran));
-
-        $engine = new Engine([
-            'strategy'     => $strategy,
-            'config_file'  => $config_file,
-            'file_handler' => $file_handler,
-        ]);
-
-        $expected = [
-            '0000000002_create_test_table3.sql',
-            '0000000003_create_test_table4.sql',
-        ];
-
-        $this->assertEquals(array_reverse($expected), $engine->getMigrationsToRollback(2));
-    }
-
-    /**
-     * @group
-     */
     public function testGetMigrationsToRollbackReturnsAllMigrationsIfLastOptionIsGreaterThanTotalAmountOfMigrations()
     {
         $migrations_ran = [

@@ -62,10 +62,7 @@ class RollbackCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        // Get option to rollback the last "n" number of migrations
-        $num_to_rollback = (int) $input->getOption('last');
-
-        $migrations_to_rollback = $this->engine->getMigrationsToRollback($num_to_rollback);
+        $migrations_to_rollback = $this->engine->getMigrationsToRollback();
 
         // Stop execution if there is nothing to rollback
         if (empty($migrations_to_rollback)) {

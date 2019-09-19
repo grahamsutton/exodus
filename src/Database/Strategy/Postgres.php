@@ -78,13 +78,36 @@ class Postgres implements Strategy
      * Returns the list of migrations that have already been executed and
      * are in the database migrations table.
      *
+     * This method defaults to returning the last batch of migrations that
+     * were ran. This allows the developer to only undo the last changes
+     * that were committed to the database and avoid accidentally wiping
+     * the entire database clean on rollbacks.
+     *
      * @return array
      */
     public function getMigrationsRan(): array
     {
-        $resource = $this->db_adapter->query(
-            "SELECT file FROM $this->migration_table ORDER BY ran_at ASC"
-        );
+        try {
+
+            $this->db_adapter->begin();
+
+            $latest_batch = $this->getLatestBatchNumber();
+
+            $resource = $this->db_adapter->execute("
+                SELECT file
+                FROM $this->migration_table
+                WHERE batch = $latest_batch
+                ORDER BY ran_at ASC
+            ");
+
+            $this->db_adapter->commit();
+
+        } catch (\Exception $e) {
+
+            $this->db_adapter->rollback();
+
+            throw $e;
+        }
 
         $results = pg_fetch_all($resource) ?: [];
 
@@ -101,14 +124,15 @@ class Postgres implements Strategy
      * essentially marking them as "ran".
      *
      * @param array $migrated_files
+     * @param int   $batch_number
      *
      * @return void
      */
-    public function addMigrations(array $migrated_files = []): void
+    public function addMigrations(array $migrated_files = [], int $batch_number): void
     {
         foreach ($migrated_files as $migrated_file) {
             $this->db_adapter->execute("
-                INSERT INTO $this->migration_table (file) VALUES ('$migrated_file')
+                INSERT INTO $this->migration_table (file, batch) VALUES ('$migrated_file', $batch_number)
             ");
         }
     }
@@ -118,14 +142,15 @@ class Postgres implements Strategy
      * during a rollback so that they can be run again.
      *
      * @param array $migrated_files
+     * @param int   $batch_number
      *
      * @return void
      */
-    public function removeMigrations(array $migrated_files = []): void
+    public function removeMigrations(array $migrated_files = [], int $batch_number): void
     {
         foreach ($migrated_files as $migrated_file) {
             $this->db_adapter->execute("
-                DELETE FROM $this->migration_table WHERE file = '$migrated_file'
+                DELETE FROM $this->migration_table WHERE file = '$migrated_file' AND batch = $batch_number
             ");
         }
     }
@@ -201,5 +226,27 @@ class Postgres implements Strategy
     public function rollback(): void
     {
         $this->db_adapter->rollback();
+    }
+
+    /**
+     * Return the highest value in the "batch" column. The highest value in
+     * the "batch" signifies the latest run batch.
+     *
+     * The "batch" column is located in the migrations table.
+     *
+     * Batches are used to perform rollbacks that only undo the last execution
+     * and not the entire database.
+     *
+     * @return int
+     */
+    public function getLatestBatchNumber(): int
+    {
+        $resource = $this->db_adapter->execute(
+            "SELECT MAX(batch) FROM $this->migration_table"
+        );
+
+        $batch_number = pg_fetch_row($resource);
+
+        return !is_null($batch_number[0]) ? $batch_number[0] : 0;
     }
 }

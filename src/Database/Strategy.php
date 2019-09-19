@@ -40,20 +40,22 @@ interface Strategy
      * inserted so it does not run again.
      *
      * @param array $migrated_files
+     * @param int   $batch_number
      *
      * @return void
      */
-    public function addMigrations(array $migrated_files = []): void;
+    public function addMigrations(array $migrated_files = [], int $batch_number): void;
 
     /**
      * Deletes the list of migrations from the migrations table. This will happen
      * when a series of files have been rolled back successfully.
      *
      * @param array $migrated_files
+     * @param int   $batch_number
      *
      * @return void
      */
-    public function removeMigrations(array $migrated_files = []): void;
+    public function removeMigrations(array $migrated_files = [], int $batch_number): void;
 
     /**
      * Defines how a single migration is ran and what should happen when running

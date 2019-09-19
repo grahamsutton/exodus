@@ -94,7 +94,7 @@ class Engine
         }
 
         // Inserts migrations into the migration table
-        $this->strategy->addMigrations($migrations);
+        $this->strategy->addMigrations($migrations, $this->getNextBatchNumber());
 
         $this->strategy->tearDown();
     }
@@ -121,7 +121,7 @@ class Engine
             $this->strategy->runRollback($contents);
         }
 
-        $this->strategy->removeMigrations($migrations);
+        $this->strategy->removeMigrations($migrations, $this->strategy->getLatestBatchNumber());
 
         $this->strategy->tearDown();
     }
@@ -152,32 +152,11 @@ class Engine
      * table and begin reversing the order of the migrations so that they can
      * be rolled back in backwards order from latest to oldest.
      *
-     * The $num_to_rollback parameter represents the number of migrations to
-     * rollback. For example, if "3" was provided, we would rollback the last
-     * three migrations. If null is provided, we rollback all migrations.
-     *
-     * If the provided number to rollback is greater than the total migrations
-     * that have been run, then we will rollback all of them
-     *
-     * @param int $num_to_rollback
-     *
      * @return array
      */
-    public function getMigrationsToRollback(int $num_to_rollback = null)
+    public function getMigrationsToRollback()
     {
-        $migrations_ran = $this->strategy->getMigrationsRan();
-
-        if (!is_null($num_to_rollback)) {
-            $total_migrations_ran = count($migrations_ran);
-
-            $num_to_rollback = $num_to_rollback > $total_migrations_ran
-                ? $total_migrations_ran 
-                : $num_to_rollback;
-
-            $migrations_ran = array_slice($migrations_ran, 0 - $num_to_rollback);
-        }
-
-        return array_reverse($migrations_ran);
+        return array_reverse($this->strategy->getMigrationsRan());
     }
 
     /**
@@ -198,8 +177,6 @@ class Engine
         $dir_contents = $this->file_handler->fileExists($migration_dir)
             ? $this->file_handler->scanDir($migration_dir)
             : [];
-
-        // $dir_contents = $this->file_handler->scanDir($migration_dir);
 
         // Loop through each node in the migrations directory
         foreach ($dir_contents as $node) {
@@ -223,5 +200,22 @@ class Engine
     public function onFailure(): void
     {
         $this->strategy->rollback();
+    }
+
+    /**
+     * Returns the next batch number from the database by retreving the
+     * highest value from the "batch" column in the migrations table and
+     * increments it by 1.
+     *
+     * Batches are used for marking a set of migrations that were run
+     * in the same execution. This helps provide support for performing
+     * rollbacks that only undo the latest execution and not the entire
+     * database.
+     *
+     * @return int
+     */
+    private function getNextBatchNumber(): int
+    {
+        return $this->strategy->getLatestBatchNumber() + 1;
     }
 }

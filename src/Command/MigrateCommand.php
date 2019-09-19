@@ -81,7 +81,7 @@ class MigrateCommand extends Command
             }
 
         } catch (\Exception $e) {
-
+// print_r($e);exit;
             $this->engine->onFailure();
 
             throw $e;
